@@ -1,41 +1,17 @@
-from dataclasses import dataclass
-from networkx import write_gml, write_graphml
+import matplotlib.pyplot as plt
+import networkx as nx
+from networkx.drawing.nx_pydot import graphviz_layout
+
 from suffixtree import SuffixTree
 
 
-@dataclass
-class Point:
-    lat: float
-    lon: float
+st = SuffixTree()
+st.generate(r'1001000100$')
+g = st.to_nx()
 
-    def __hash__(self) -> int:
-        return hash((self.lat, self.lon))
+edge_labels = {(u, v): d['label'] for u, v, d in st.edges(data=True)}
 
-    def __eq__(self, o: object) -> bool:
-        return self.__hash__() == o.__hash__()
-
-    def __str__(self) -> str:
-        return f'{self.lat},{self.lon}'
-
-
-s = SuffixTree()
-s.generate(
-    (
-        Point(1,1),
-        Point(1,0),
-        Point(0,1),
-        Point(1,1),
-        Point(1,0),
-        Point(0,0),
-    )
-)
-# s.generate('MISSISSIPPI$')
-
-# annotate graph for vizualization
-for i in range(1, s.order()):
-    parent = s.parent_id(i)
-    edge = s[parent][i]
-    edge['label'] = s.label(edge)
-
-write_gml(s, r'example.gml')
-write_graphml(s, r'example.graphml')
+pos = graphviz_layout(g, prog="dot")
+nx.draw_networkx(g, pos)
+nx.draw_networkx_edge_labels(g, pos, edge_labels=edge_labels)
+plt.show()
