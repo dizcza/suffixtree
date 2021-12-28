@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass, field
 from typing import List, Dict, Hashable, Union
 from networkx import DiGraph
@@ -27,12 +28,10 @@ class SuffixTree(DiGraph):
         return self.order() - 1
 
     def add_node(self, node: Node):
-        super().add_node(node.id, link=node.link)
+        super().add_node(node.id, data=node)
 
     def get_node(self, id: int) -> Node:
-        node = Node(id)
-        node.link = self.nodes[id]
-        return node
+        return self.nodes[id]['data']
 
     def parent_id(self, id: int) -> Union[int, None]:
         return next(self.predecessors(id), None)
@@ -128,7 +127,7 @@ class SuffixTree(DiGraph):
         self.remove_edge(parent, child)
         return new_node
 
-    def extend(self, suffix: List[Hashable]):
+    def extend(self, start, suffix: List[Hashable]):
         path = []  # stack of passed edges
         v = old = self.last_node_id
         vlen = len(suffix)
@@ -164,6 +163,7 @@ class SuffixTree(DiGraph):
             leaf_node, suffix[-length_leaf],
             length_leaf, pos_leaf
         )
+        leaf_node.start = start
         # Create prefix link from old to the new leaf
         self.get_node(old).link[suffix[0]] = leaf_node.id
 
@@ -175,11 +175,13 @@ class SuffixTree(DiGraph):
             range_ = tqdm(range_)
         for i in range_:
             sub = sequence[-i:]
-            self.extend(sub)
+            self.extend(len(sequence) - i, sub)
 
     def to_nx(self):
         g = DiGraph()
         for u, v, d in self.edges(data=True):
             d['label'] = self.label(d)
+            if self.out_degree(v) == 0:
+                v = f"{v}:{self.nodes[v]['data'].start}"
             g.add_edge(u, v, **d)
         return g
